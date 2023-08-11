@@ -3,11 +3,8 @@ import numpy as np
 
 
 def strings_from_sketchpad_sketches(sketchpad):
-    # FI and VO are the two
-    output = ""
     ds = sketchpad.get_sketchdata_by_name("DS_FI")
-    # consider showing the counts of frequent items?? Might be useful information.
-    output += " ".join(
+    output = "" + " ".join(
         [
             x[0]
             for x in ds.get_frequent_items(
@@ -33,9 +30,8 @@ def strings_from_sketchpad_sketches(sketchpad):
 def unary_metrics(sketchpad):
     # get metrics for a single sketchpad
     # return a vector of metrics
-    metrics = {}
+    metrics = {"rows": sketchpad.get_sketchdata_by_name("Rows")}
 
-    metrics["rows"] = sketchpad.get_sketchdata_by_name("Rows")
     metrics["count"] = sketchpad.get_sketchdata_by_name("Count")
 
     ds = sketchpad.get_sketchdata_by_name("DS_HLL")
@@ -88,7 +84,7 @@ def unary_metrics(sketchpad):
     # print("=VO=".ljust(12, " "), ds.to_string(True))
 
     ds = sketchpad.get_sketchdata_by_name("UnicodeMatches")
-    metrics.update({f"unicode_{k}": v for k, v in ds.items()})
+    metrics |= {f"unicode_{k}": v for k, v in ds.items()}
 
     return metrics
 
@@ -113,18 +109,18 @@ def ks_estimate(s1, s2):
 
 
 def binary_metrics(sketchpad1, sketchpad2):
-    metrics = {}
-
     ds1 = sketchpad1.get_sketchdata_by_name("DS_THETA")
     ds2 = sketchpad2.get_sketchdata_by_name("DS_THETA")
 
     lower, estimate, upper = datasketches.theta_jaccard_similarity.jaccard(ds1, ds2)
-    metrics["theta_jaccard_lower_bound"] = lower
-    metrics["theta_jaccard_upper_bound"] = upper
-    metrics["theta_jaccard_estimate"] = estimate
-    metrics["theta_exactly_equal"] = int(
-        datasketches.theta_jaccard_similarity.exactly_equal(ds1, ds2)
-    )
+    metrics = {
+        "theta_jaccard_lower_bound": lower,
+        "theta_jaccard_upper_bound": upper,
+        "theta_jaccard_estimate": estimate,
+        "theta_exactly_equal": int(
+            datasketches.theta_jaccard_similarity.exactly_equal(ds1, ds2)
+        ),
+    }
     theta_1_not_2 = datasketches.theta_a_not_b().compute(ds1, ds2)
     metrics["theta_1_not_2"] = theta_1_not_2.get_estimate()
     theta_2_not_1 = datasketches.theta_a_not_b().compute(ds2, ds1)
