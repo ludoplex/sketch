@@ -47,8 +47,8 @@ class SketchBase:
     @classmethod
     def from_dict(cls, data):
         tcls = cls
-        if data["name"] != cls.__name__:
-            for subclass in cls.all_sketches():
+        if data["name"] != tcls.__name__:
+            for subclass in tcls.all_sketches():
                 if subclass.__name__ == data["name"]:
                     tcls = subclass
         return tcls(data=tcls.unpack(data["data"]))

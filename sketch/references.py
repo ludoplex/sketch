@@ -45,7 +45,7 @@ class Reference:
         subclasses = {}
         for subclass in cls.__subclasses__():
             subclasses[subclass.__name__] = subclass
-            subclasses.update(subclass.subclass_lookup)
+            subclasses |= subclass.subclass_lookup
         return subclasses
 
     @classmethod
@@ -97,9 +97,13 @@ class SqliteColumn(Reference):
             localpath = f"~/.cache/sketch/{base}"
         else:
             localpath = self.data["path"]
-        commands.append(f"conn = sqlite3.connect('{localpath}')")
-        commands.append(f"df = pd.read_sql_query('{self.data['query']}', conn)")
-        commands.append(f"df = df['{self.data['column']}']")
+        commands.extend(
+            (
+                f"conn = sqlite3.connect('{localpath}')",
+                f"df = pd.read_sql_query('{self.data['query']}', conn)",
+                f"df = df['{self.data['column']}']",
+            )
+        )
         return "\n".join(commands)
 
 
@@ -108,14 +112,15 @@ class PandasDataframeColumn(Reference):
         super().__init__(dfname=dfname, column=column, **dfextra)
 
     def to_searchable_string(self):
-        base = " ".join([self.data["dfname"], self.data["column"]])
-        base += " ".join([f"{k}={v}" for k, v in self.data.get("extra", {}).items()])
-        return base
+        return " ".join([self.data["dfname"], self.data["column"]]) + " ".join(
+            [f"{k}={v}" for k, v in self.data.get("extra", {}).items()]
+        )
 
     def to_pyscript(self):
-        commands = []
-        commands.append(f'df = {self.data["dfname"]}')
-        commands.append(f'df = df[["{self.data["column"]}"]]')
+        commands = [
+            f'df = {self.data["dfname"]}',
+            f'df = df[["{self.data["column"]}"]]',
+        ]
         return "\n".join(commands)
 
 
@@ -124,7 +129,7 @@ class WikipediaTableColumn(Reference):
         super().__init__(page=page, id=id, headers=headers, column=column)
 
     def to_searchable_string(self):
-        base = " ".join(
+        return " ".join(
             [
                 self.data["page"],
                 str(self.data["id"]),
@@ -132,15 +137,15 @@ class WikipediaTableColumn(Reference):
                 str(self.data["column"]),
             ]
         )
-        return base
 
     @property
     def url(self):
         return f"https://en.wikipedia.org/wiki/{self.data['page'].replace(' ', '_')}"
 
     def to_pyscript(self):
-        commands = []
-        commands.append(f"import pandas as pd")
-        commands.append(f'df = pd.read_html({self.data["page"]})[{self.data["id"]}]')
-        commands.append(f'df = df[["{self.data["column"]}"]]')
+        commands = [
+            "import pandas as pd",
+            f'df = pd.read_html({self.data["page"]})[{self.data["id"]}]',
+            f'df = df[["{self.data["column"]}"]]',
+        ]
         return "\n".join(commands)

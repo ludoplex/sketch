@@ -51,7 +51,7 @@ def get_top_n(ds, n=5, size=100, reject_all_1=True):
             datasketches.frequent_items_error_type.NO_FALSE_POSITIVES
         )
     ][:n]
-    top_n = [] if (reject_all_1 and all([c <= 1 for c, _ in top_n])) else top_n
+    top_n = [] if reject_all_1 and all(c <= 1 for c, _ in top_n) else top_n
     return {"counts": [c for c, _ in top_n], "values": [v for _, v in top_n]}
 
 
@@ -59,7 +59,7 @@ def get_distribution(ds, n=5):
     if ds.is_empty():
         return {}
     percents = np.linspace(0, 1, n)
-    return {p: v for p, v in zip(percents, ds.get_quantiles(percents))}
+    return dict(zip(percents, ds.get_quantiles(percents)))
 
 
 def get_description_of_sketchpad(sketchpad):
@@ -99,7 +99,7 @@ def get_description_from_parts(
                 pass
         if isinstance(extra, sketch.SketchPad):
             extra = get_description_of_sketchpad(extra)
-        description.update(extra)
+        description |= extra
         descriptions.append(description)
     return descriptions
 
@@ -174,7 +174,7 @@ Consider setting SKETCH_USE_REMOTE_LAMBDAPROMPT=False
 and run with your own open-ai key
 """
             )
-            text_to_copy = f"SKETCH ERROR - see print logs for full error"
+            text_to_copy = "SKETCH ERROR - see print logs for full error"
     else:
         # using local version
         text_to_copy = prompt(**prompt_kwargs)
@@ -283,12 +283,9 @@ def get_import_modules_from_codestring(code):
     # get all the module names
     import_modules = []
     for node in import_statements:
-        for alias in node.names:
-            import_modules.append(alias.name)
+        import_modules.extend(alias.name for alias in node.names)
     import_modules += [node.module for node in import_from_statements]
-    # only take parent module (eg. `matplotlib.pyplot` -> `matplotlib`)
-    import_modules = [module.split(".")[0] for module in import_modules]
-    return import_modules
+    return [module.split(".")[0] for module in import_modules]
 
 
 def validate_pycode_result(result):

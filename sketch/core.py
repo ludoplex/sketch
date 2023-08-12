@@ -47,9 +47,7 @@ class SketchPad:
 
     def get_sketch_by_name(self, name):
         sketches = [sk for sk in self.sketches if sk.name == name]
-        if len(sketches) == 1:
-            return sketches[0]
-        return None
+        return sketches[0] if len(sketches) == 1 else None
 
     def get_sketchdata_by_name(self, name):
         sketch = self.get_sketch_by_name(name)
@@ -146,10 +144,14 @@ class Portfolio:
             self.add_sketchpad(sp)
 
     def get_sketchpad_by_reference_id(self, reference_id):
-        for sketchpad in self.sketchpads.values():
-            if sketchpad.reference.id == reference_id:
-                return sketchpad
-        return None
+        return next(
+            (
+                sketchpad
+                for sketchpad in self.sketchpads.values()
+                if sketchpad.reference.id == reference_id
+            ),
+            None,
+        )
 
     def add_sqlite(self, sqlite_db_path):
         if sqlite_db_path.startswith("http"):
@@ -169,7 +171,7 @@ class Portfolio:
             f"SELECT name FROM {meta_name} WHERE type='table' ORDER BY name;", conn
         )
         logging.info(f"Found {len(tables)} tables in file {sqlite_db_path}")
-        for i, table in enumerate(tables.name):
+        for table in tables.name:
             for column in pd.read_sql(f'PRAGMA table_info("{table}")', conn).name:
                 query = f'SELECT "{column}" FROM "{table}"'
                 reference = SqliteColumn(sqlite_db_path, query, column)
